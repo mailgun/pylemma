@@ -1,7 +1,7 @@
 import time
 
-import lemma
 import expiringdict
+from lemma import httpsign
 
 from . import *
 
@@ -12,18 +12,18 @@ from nose.tools import nottest
 
 def test_initialize():
     # setup
-    lemma.initialize(TEST_KEY)
+    httpsign.initialize(TEST_KEY)
 
     # check
-    assert_equal(lemma.SHARED_SECRET, '042DAD12E0BE4625AC0B2C3F7172DBA8')
-    assert_not_equal(lemma.NONCE_CACHE, None)
+    assert_equal(httpsign.SHARED_SECRET, '042DAD12E0BE4625AC0B2C3F7172DBA8')
+    assert_not_equal(httpsign.NONCE_CACHE, None)
 
 
-@patch('lemma._get_timestamp')
-@patch('lemma._generate_nonce')
+@patch('lemma.httpsign._get_timestamp')
+@patch('lemma.httpsign._generate_nonce')
 def test_sign_request(gn, gt):
     # setup
-    lemma.initialize(TEST_KEY)
+    httpsign.initialize(TEST_KEY)
 
     # mock _generate_nonce and _get_timestamp function return values
     gn.return_value = '000102030405060708090a0b0c0d0e0f'
@@ -38,7 +38,7 @@ def test_sign_request(gn, gt):
 
     # test
     got_timestamp, got_nonce, got_signature, got_signature_version = \
-        lemma.sign_request('{"hello": "world"}')
+        httpsign.sign_request('{"hello": "world"}')
 
     # check
     assert_equal(expected_timestamp, got_timestamp)
@@ -48,11 +48,11 @@ def test_sign_request(gn, gt):
 
 
 @patch('time.time')
-@patch('lemma._get_timestamp')
-@patch('lemma._generate_nonce')
+@patch('lemma.httpsign._get_timestamp')
+@patch('lemma.httpsign._generate_nonce')
 def test_authenticate_request(gn, gt, tm):
     # setup
-    lemma.initialize(TEST_KEY)
+    httpsign.initialize(TEST_KEY)
 
     # mock _generate_nonce and _get_timestamp function return values
     gn.return_value = '000102030405060708090a0b0c0d0e0f'
@@ -149,7 +149,7 @@ def test_authenticate_request(gn, gt, tm):
     # check
     for i, test in enumerate(auth_tests):
         print 'Testing Input {}: {}'.format(i, test['input'])
-        testOutput = lemma.authenticate_request(test['input']['timestamp'],
+        testOutput = httpsign.authenticate_request(test['input']['timestamp'],
                                                test['input']['nonce'],
                                                test['input']['body'],
                                                test['input']['signature'],
@@ -191,14 +191,14 @@ def test_check_timestamp(tm):
 
     # check
     for test in auth_tests:
-        testOutput = lemma._check_timestamp(test['input']['timestamp'])
+        testOutput = httpsign._check_timestamp(test['input']['timestamp'])
         assert_equal(test['output'], testOutput)
 
 
 @patch('time.time')
 def test_check_nonce(tm):
     # setup
-    lemma.initialize(TEST_KEY)
+    httpsign.initialize(TEST_KEY)
 
     # setup values we want to test, mock, and results
     auth_tests = [
@@ -240,5 +240,5 @@ def test_check_nonce(tm):
         # mock time
         tm.return_value = test['input']['mock_time']
 
-        testOutput = lemma._nonce_in_cache(test['input']['nonce'])
+        testOutput = httpsign._nonce_in_cache(test['input']['nonce'])
         assert_equal(test['output'], testOutput)
