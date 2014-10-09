@@ -28,7 +28,7 @@ def initialize(keypath=None):
 
     If no keypath is passed in, the secret box will not be setup, and the
     key must be passed in each time the functions open or seal are called.
-    The keypath passed must also be the path to hex-encoded key on disk.
+    The keypath passed must also be the path to base64-encoded key on disk.
     New lines will be stripped and not considered part of the key.
     """
 
@@ -58,7 +58,7 @@ def initialize(keypath=None):
 def initialize_with_key(keybytes=None):
     """
     Initializes module with given keybytes. Here the passed in key must be the
-    key bytes themself and not the hex-encoded key.
+    key bytes themself and not the base64-encoded key.
 
     If no keybytes are passed in, the secret box will not be setup, and the key
     must be passed in each time the functions open or seal are called.
@@ -85,14 +85,14 @@ def seal(plaintext, key=None, emit_metrics=True):
     The nonce is not secret, but is required to decrypt the ciphertext.
 
     If a key is passed in, that key will be used to seal the plaintext. This
-    key must be the key bytes, not the hex-encoded key. Use the hexkey_to_key
-    function to convert a hex-encoded key into a key.
+    key must be the key bytes, not the base64-encoded key. Use the
+    encodedkey_to_key function to convert a base64-encoded key into a key.
 
     >>> ciphertext, nonce = seal('hello, box!')
-    >>> print bytes_to_hexstring(ciphertext)
-    588362b116c2d90ccb909f201098c213369a5423a8e68272d444ae
-    >>> print bytes_to_hexstring(nonce)
-    000102030405060708090a0b0c0d0e0f1011121314151617
+    >>> print bytes_to_encodedstring(ciphertext)
+    'WINisRbC2QzLkJ8gEJjCEzaaVCOo5oJy1ESu'
+    >>> print bytes_to_encodedstring(nonce)
+    'AAECAwQFBgcICQoLDA0ODxAREhMUFRYX'
     """
 
     # generate nonce
@@ -114,10 +114,10 @@ def open(ciphertext, nonce, key=None, emit_metrics=True):
     has not been tampered with and return the decrypted plaintext.
 
     If a key is passed in, that key will be used to seal the plaintext. This key
-    must be the key bytes, not the hex-encoded key.
+    must be the key bytes, not the base64-encoded key.
 
-    >>> ciphertext = hexstring_to_bytes('588362b116c2d90ccb909f201098c213369a5423a8e68272d444ae')
-    >>> nonce = hexstring_to_bytes('000102030405060708090a0b0c0d0e0f1011121314151617')
+    >>> ciphertext = encodedstring_to_bytes('WINisRbC2QzLkJ8gEJjCEzaaVCOo5oJy1ESu')
+    >>> nonce = encodedstring_to_bytes('AAECAwQFBgcICQoLDA0ODxAREhMUFRYX')
     >>> open(ciphertext, nonce)
     'hello, box!'
     """
@@ -153,24 +153,25 @@ def new_key():
     return _generate_random_bytes(SECRET_KEY_LEN)
 
 
-def hexstring_to_bytes(s):
+def encodedstring_to_bytes(s):
     """
-    Given a hex-encoded key, return the key bytes.
+    Given a base64-encoded key, return the key bytes.
 
-    >>> hexstring_to_bytes('08699807929B04341D2D64198459117FB09C5CA8C1FB3CAF7AFE3391818C082F')
-    '\x08i\x98\x07\x92\x9b\x044\x1d-d\x19\x84Y\x11\x7f\xb0\x9c\\\xa8\xc1\xfb<\xafz\xfe3\x91\x81\x8c\x08/'
+    >>> encodedstring_to_bytes('s7z5mRzlul51w7ZSdpZjNZi7HjPp+Lfe')
+    '\xb3\xbc\xf9\x99\x1c\xe5\xba^u\xc3\xb6Rv\x96c5\x98\xbb\x1e3\xe9\xf8\xb7\xde'
     """
-    return base64.b16decode(s)
+    return base64.b64decode(s)
 
 
-def bytes_to_hexstring(k):
+def bytes_to_encodedstring(k):
     """
-    Given key bytes, return the hex-encoded key. A-F are always encoded as lowercase.
+    Given key bytes, return the base64-encoded key.
 
-    >>> bytes_to_hexstring('\x08i\x98\x07\x92\x9b\x044\x1d-d\x19\x84Y\x11\x7f\xb0\x9c\\\xa8\xc1\xfb<\xafz\xfe3\x91\x81\x8c\x08/')
-    '08699807929b04341d2d64198459117fb09c5ca8c1fb3caf7afe3391818c082f'
+    >>> bytes_to_encodedstring('\xb3\xbc\xf9\x99\x1c\xe5\xba^u\xc3\xb6Rv\x96c5\x98\xbb\x1e3\xe9\xf8\xb7\xde')
+    's7z5mRzlul51w7ZSdpZjNZi7HjPp+Lfe'
     """
-    return base64.b16encode(k).lower()
+
+    return base64.b64encode(k)
 
 
 def _obtain_box(key):
@@ -197,7 +198,7 @@ def _obtain_box(key):
 
 def _read_key_from_disk(keypath):
     """
-    Reads key from disk and returns the hex-decoded key. New lines
+    Reads key from disk and returns the base64-decoded key. New lines
     (if they exist) are stripped.
     """
 
@@ -205,10 +206,10 @@ def _read_key_from_disk(keypath):
     encoded_secret_key = __builtin__.open(keypath).read()
 
     # strip newlines if they exist
-    hexkey = encoded_secret_key.strip('\n')
+    encoded_key = encoded_secret_key.strip('\n')
 
-    # decode hex-encoding and return key bytes
-    return hexstring_to_bytes(hexkey)
+    # decode base64-encoding and return key bytes
+    return encodedstring_to_bytes(encoded_key)
 
 
 def _generate_random_bytes(n):
