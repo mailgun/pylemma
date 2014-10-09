@@ -16,4 +16,5 @@ def skip_if_asked():
         raise SkipTest()
 
 
-TEST_KEY = fixture_file("test.key")
+HTTPSIGN_KEY = fixture_file("httpsign.key")
+SECRET_KEY = fixture_file("secret.key")

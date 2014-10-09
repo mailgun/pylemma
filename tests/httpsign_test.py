@@ -12,7 +12,7 @@ from nose.tools import nottest
 
 def test_initialize():
     # setup
-    httpsign.initialize(TEST_KEY)
+    httpsign.initialize(HTTPSIGN_KEY)
 
     # check
     assert_equal(httpsign.SHARED_SECRET, '042DAD12E0BE4625AC0B2C3F7172DBA8')
@@ -23,7 +23,7 @@ def test_initialize():
 @patch('lemma.httpsign._generate_nonce')
 def test_sign_request(gn, gt):
     # setup
-    httpsign.initialize(TEST_KEY)
+    httpsign.initialize(HTTPSIGN_KEY)
 
     # mock _generate_nonce and _get_timestamp function return values
     gn.return_value = '000102030405060708090a0b0c0d0e0f'
@@ -52,7 +52,7 @@ def test_sign_request(gn, gt):
 @patch('lemma.httpsign._generate_nonce')
 def test_authenticate_request(gn, gt, tm):
     # setup
-    httpsign.initialize(TEST_KEY)
+    httpsign.initialize(HTTPSIGN_KEY)
 
     # mock _generate_nonce and _get_timestamp function return values
     gn.return_value = '000102030405060708090a0b0c0d0e0f'
@@ -198,7 +198,7 @@ def test_check_timestamp(tm):
 @patch('time.time')
 def test_check_nonce(tm):
     # setup
-    httpsign.initialize(TEST_KEY)
+    httpsign.initialize(HTTPSIGN_KEY)
 
     # setup values we want to test, mock, and results
     auth_tests = [
