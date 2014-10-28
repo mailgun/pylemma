@@ -40,13 +40,10 @@ def initialize(keypath=None):
         BOX = None
         return
 
+    # try and load shared secret from disk
     try:
-        # load shared secret from disk
         SECRET_KEY = _read_key_from_disk(keypath)
-
     except IOError as ioe:
-        # raise an exception if we had a problem loading the key
-
         SECRET_KEY = None
         BOX = None
         raise SecretException('Unable to read key from disk: {}'.format(ioe))
@@ -73,8 +70,12 @@ def initialize_with_key(keybytes=None):
         return
 
     # setup the secret box
-    SECRET_KEY = keybytes
-    BOX = nacl.secret.SecretBox(SECRET_KEY)
+    try:
+        SECRET_KEY = keybytes
+        BOX = nacl.secret.SecretBox(SECRET_KEY)
+    except Exception as e:
+        raise SecretException('Unable to initialize SecretBox with given '
+            'key: {}: {}'.format(keybytes, e))
 
 
 def seal(plaintext, key=None, emit_metrics=True):
@@ -183,8 +184,12 @@ def _obtain_box(key):
 
     # key was passed in
     if key:
-        # always override the box
-        return nacl.secret.SecretBox(key)
+        try:
+            # always override the box
+            return nacl.secret.SecretBox(key)
+        except Exception as e:
+            raise SecretException('Unable to initialize SecretBox with '
+                'key: {}: {}'.format(key, e))
 
     # no key was passed in
     else:
