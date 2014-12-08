@@ -9,13 +9,15 @@ import os
 import threading
 import time
 
+import lemma.metrics
+
 from cryptography.hazmat.primitives import constant_time
 from expiringdict import ExpiringDict
 
 # constants
-MAX_SKEW_SEC = 5  # 5 sec
-CACHE_TIMEOUT = 30  # 30 sec
-CACHE_CAPACITY = 5000 * CACHE_TIMEOUT  # 5,000 msg/sec * 30 sec = 150,000 msg
+MAX_SKEW_SEC = 5 # 5 sec
+CACHE_TIMEOUT = 100  # 30 sec
+CACHE_CAPACITY = 5000 * CACHE_TIMEOUT  # 5,000 msg/sec * 100 sec = 500,000 msg
 SIGNATURE_VERSION = "2"
 
 # module level variables
@@ -24,11 +26,11 @@ SHARED_SECRET = None
 NONCE_CACHE = None
 
 
-def initialize(keypath, cache_capacity=CACHE_CAPACITY,
-               cache_timeout=CACHE_TIMEOUT):
+def initialize(keypath, cache_capacity=CACHE_CAPACITY, cache_timeout=CACHE_TIMEOUT):
     """
-    Initializes module by loading a shared key as well as nonce cache. This
-    module can handle authenticating 5,000 requests/second, if you need to
+    Initializes module by loading a shared key as well as nonce cache.
+
+    This module can handle authenticating 5,000 requests/second, if you need to
     authenticate more requests than that, set the cache capacity and timeout
     accordingly.
     """
@@ -102,8 +104,9 @@ def sign_request(request_body,
     return timestamp, nonce, signature, SIGNATURE_VERSION
 
 
-def authenticate_request(timestamp, nonce, request_body, signature,
-    signature_version="2", http_verb=None, http_resource_uri=None, headers=None, key=None):
+@lemma.metrics._metrics
+def authenticate_request(timestamp, nonce, request_body, signature, signature_version="2",
+    http_verb=None, http_resource_uri=None, headers=None, key=None, metrics_prefix=None):
     """
     Given a timestamp, nonce, request body, signature, and optionally (signature_version,
     http_verb and http_resource_uri, headers, and key:
@@ -121,10 +124,12 @@ def authenticate_request(timestamp, nonce, request_body, signature,
     Returns a boolean.
     """
 
-    # if shared secret or nonce cache not loaded, don't authenticate anything
+    # if shared secret is not loaded, don't authenticate anything
     if not SHARED_SECRET:
         if not key:
             raise AuthenticationException('No shared secret provided.')
+
+    # if nonce cache not loaded, don't authenticate anything
     if NONCE_CACHE is None:
         raise AuthenticationException('Nonce cache not configured.')
 
@@ -145,6 +150,7 @@ def authenticate_request(timestamp, nonce, request_body, signature,
     # check the hmac
     if not _check_mac(shared_secret, timestamp, nonce, request_body, signature,
             http_verb=http_verb, http_resource_uri=http_resource_uri, headers=headers):
+
         return False
 
     # check timestamp

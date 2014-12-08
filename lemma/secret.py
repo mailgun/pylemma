@@ -73,12 +73,12 @@ def initialize_with_key(keybytes=None):
     try:
         SECRET_KEY = keybytes
         BOX = nacl.secret.SecretBox(SECRET_KEY)
-    except Exception as e:
+    except:
         raise SecretException('Unable to initialize SecretBox with given '
             'key: {}: {}'.format(keybytes, e))
 
 
-def seal(plaintext, key=None, emit_metrics=True):
+def seal(plaintext, key=None):
     """
     Given some plaintext, seal will encrypt and MAC the resulting ciphertext.
     The ciphertext and a nonce is returned on successful encryption.
@@ -109,7 +109,8 @@ def seal(plaintext, key=None, emit_metrics=True):
     return encrypted_message.ciphertext, encrypted_message.nonce
 
 
-def open(ciphertext, nonce, key=None, emit_metrics=True):
+@lemma.metrics._metrics
+def open(ciphertext, nonce, key=None, metrics_prefix=None):
     """
     Given ciphertext and a nonce, open will authenticate that the ciphertext
     has not been tampered with and return the decrypted plaintext.
@@ -129,17 +130,9 @@ def open(ciphertext, nonce, key=None, emit_metrics=True):
     # open the box and retrieve the message
     try:
         plaintext = box.decrypt(ciphertext, nonce)
-    except nacl.exceptions.CryptoError as ce:
-        # emit failure metric
-        if emit_metrics:
-            lemma.metrics.emit_failure()
-
+    except:
         # raise the exception so we know what happened
         raise
-
-    # emit successful metric
-    if emit_metrics:
-        lemma.metrics.emit_success()
 
     return plaintext
 
