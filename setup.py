@@ -22,8 +22,9 @@ setup(name='pylemma',
           'mock'
       ],
       install_requires=[
-          'expiringdict>=1.1.3',
           'cryptography>=0.5.1',
+          'expiringdict>=1.1.3',
           'pynacl>=0.2.3',
+          'statsd>=3.0.1'
       ],
       )
