@@ -15,9 +15,9 @@ from cryptography.hazmat.primitives import constant_time
 from expiringdict import ExpiringDict
 
 # constants
-MAX_SKEW_SEC = 5  # 5 sec
-CACHE_TIMEOUT = 30  # 30 sec
-CACHE_CAPACITY = 5000 * CACHE_TIMEOUT  # 5,000 msg/sec * 30 sec = 150,000 msg
+MAX_SKEW_SEC = 5 # 5 sec
+CACHE_TIMEOUT = 100  # 30 sec
+CACHE_CAPACITY = 5000 * CACHE_TIMEOUT  # 5,000 msg/sec * 100 sec = 500,000 msg
 SIGNATURE_VERSION = "2"
 
 # module level variables
