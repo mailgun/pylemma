@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 
 setup(name='pylemma',
-      version='1.0.5',
+      version='1.0.6',
       description='Mailgun Cryptographic Tools',
       long_description=open('README.rst').read(),
       classifiers=[],
