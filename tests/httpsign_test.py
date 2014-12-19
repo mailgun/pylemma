@@ -177,14 +177,14 @@ def test_check_timestamp(tm):
     {
         # old timestamp
         "input": {
-            "timestamp": "1330837517",
+            "timestamp": "1330837467",
         },
         "output": False
     },
     {
         # timestamp from future
         "input": {
-            "timestamp": "1330837587",
+            "timestamp": "1330837578",
         },
         "output": False
     }]
@@ -230,7 +230,7 @@ def test_check_nonce(tm):
         # aged off first value, should not be in cache.
         "input": {
             "nonce": "0",
-            "mock_time": 1330837597,
+            "mock_time": 1330837667,
         },
         "output": False
     }]
