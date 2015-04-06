@@ -121,7 +121,7 @@ def authenticate_request(timestamp, nonce, request_body, signature, signature_ve
     If a key is passed in, that key is used instead of the one the module was
     initialized with.
 
-    Returns a boolean.
+    Raises an AuthenticationException.
     """
 
     # if shared secret is not loaded, don't authenticate anything
@@ -135,7 +135,7 @@ def authenticate_request(timestamp, nonce, request_body, signature, signature_ve
 
     # if any parameters are missing, return false
     if not timestamp or not nonce or not signature:
-        return False
+        raise AuthenticationException('Missing parameters.')
 
     # make request body an empty string if it doesn't exist (GET request).
     if not request_body:
@@ -147,22 +147,15 @@ def authenticate_request(timestamp, nonce, request_body, signature, signature_ve
     else:
         shared_secret = SHARED_SECRET
 
-    # check the hmac
-    if not _check_mac(shared_secret, timestamp, nonce, request_body, signature,
-            http_verb=http_verb, http_resource_uri=http_resource_uri, headers=headers):
+    # check the hmac, will raise AuthenticationException on failure
+    _check_mac(shared_secret, timestamp, nonce, request_body, signature,
+        http_verb=http_verb, http_resource_uri=http_resource_uri, headers=headers)
 
-        return False
+    # check timestamp, will raise AuthenticationException on failure
+    _check_timestamp(timestamp)
 
-    # check timestamp
-    if not _check_timestamp(timestamp):
-        return False
-
-    # check to see if we have seen nonce before
-    if _nonce_in_cache(nonce):
-        return False
-
-    # all checks pass, valid request
-    return True
+    # check to see if we have seen nonce before, will raise AuthenticationException on failure
+    _nonce_in_cache(nonce)
 
 
 def _generate_nonce(n):
@@ -191,7 +184,7 @@ def _get_timestamp():
 
 def _check_timestamp(timestamp):
     """
-    Checks if given timestamp is within a valid time range. Returns a boolean.
+    Checks if given timestamp is within a valid time range. Raises AuthenticationException.
     """
 
     now = int(time.time())
@@ -199,28 +192,28 @@ def _check_timestamp(timestamp):
 
     # if timestamp is from the future, it's invalid
     if timestamp >= now + MAX_SKEW_SEC:
-        return False
+        raise AuthenticationException(
+            'timestamp header from the future; now: {}, timestamp: {}, diff: {}'.format(now, timestamp, timestamp-now))
 
     # if the timestamp is older than ttl - skew, it's invalid
     if timestamp <= now - (CACHE_TIMEOUT - MAX_SKEW_SEC):
-        return False
-
-    return True
+        raise AuthenticationException(
+            'timestamp header too old; now: {}, timestamp: {}, diff: {}'.format(now, timestamp, now-timestamp))
 
 
 def _nonce_in_cache(nonce):
     """
-    Checks if the nonce has been seen before. Returns a boolean.
+    Checks if the nonce has been seen before. Raises AuthenticationException.
     """
 
     with LOCK:
         # if nonce has been seen before, it's invalid, otherwise add to cache.
         if nonce in NONCE_CACHE:
-            return True
+            raise AuthenticationException('nonce already in cache: {}'.format(nonce))
         else:
             NONCE_CACHE[nonce] = True
 
-        return False
+        return
 
     raise AuthenticationException('Unable to obtain lock!')
 
@@ -270,7 +263,7 @@ def _check_mac(shared_secret, timestamp, nonce, body, message_hmac,
     http_verb=None, http_resource_uri=None, headers=None):
     """
     Computes HMAC and compares expected and obtained values. Performs constant
-    time comparison. Returns a boolean.
+    time comparison. Raises AuthenticationException.
     """
 
     # compute the expected hmac
@@ -278,7 +271,8 @@ def _check_mac(shared_secret, timestamp, nonce, body, message_hmac,
         http_verb=http_verb, http_resource_uri=http_resource_uri, headers=headers)
 
     # constant time check of expected againstreceived hmac
-    return constant_time.bytes_eq(to_utf8(message_hmac), expected_hmac)
+    if not constant_time.bytes_eq(to_utf8(message_hmac), expected_hmac):
+        raise AuthenticationException('signature header value does not match computed value')
 
 
 def to_utf8(str_or_unicode):

@@ -6,7 +6,7 @@ from lemma import httpsign
 from . import *
 
 from mock import patch
-from nose.tools import assert_equal, assert_not_equal
+from nose.tools import assert_equal, assert_not_equal, assert_raises
 from nose.tools import nottest
 
 
@@ -59,7 +59,9 @@ def test_authenticate_request(gn, gt, tm):
     gt.return_value = '1330837567'
     tm.return_value = 1330837567.0
 
-    # setup values we want to test and results
+    # setup values we want to test and results, input is what we provide to the
+    # authenticate_request function, while output is a boolean that represents
+    # if the request is valid or not.
     auth_tests = [
     {
         # valid request
@@ -149,15 +151,32 @@ def test_authenticate_request(gn, gt, tm):
     # check
     for i, test in enumerate(auth_tests):
         print 'Testing Input {}: {}'.format(i, test['input'])
-        testOutput = httpsign.authenticate_request(test['input']['timestamp'],
-                                               test['input']['nonce'],
-                                               test['input']['body'],
-                                               test['input']['signature'],
-                                               http_verb=test['input']['http_verb'],
-                                               http_resource_uri=test['input']['http_resource_uri'],
-                                               headers=test['input']['headers'],
-                                               key=test['input']['key'])
-        assert_equal(test['output'], testOutput)
+
+        # if the request was invalid, expect an AuthenticationException, otherwise
+        # we should have no problems.
+        if test['output'] is False:
+            assert_raises(httpsign.AuthenticationException, httpsign.authenticate_request,
+                test['input']['timestamp'],
+                test['input']['nonce'],
+                test['input']['body'],
+                test['input']['signature'],
+                "2",
+                test['input']['http_verb'],
+                test['input']['http_resource_uri'],
+                test['input']['headers'],
+                test['input']['key'],
+                None)
+        else:
+            httpsign.authenticate_request(test['input']['timestamp'],
+                test['input']['nonce'],
+                test['input']['body'],
+                test['input']['signature'],
+                "2",
+                test['input']['http_verb'],
+                test['input']['http_resource_uri'],
+                test['input']['headers'],
+                test['input']['key'],
+                None)
 
 
 @patch('time.time')
@@ -191,8 +210,11 @@ def test_check_timestamp(tm):
 
     # check
     for test in auth_tests:
-        testOutput = httpsign._check_timestamp(test['input']['timestamp'])
-        assert_equal(test['output'], testOutput)
+        # check for exceptions if we expect the test to fail
+        if test['output'] is False:
+            assert_raises(httpsign.AuthenticationException, httpsign._check_timestamp, test['input']['timestamp'])
+        else:
+            httpsign._check_timestamp(test['input']['timestamp'])
 
 
 @patch('time.time')
@@ -208,7 +230,7 @@ def test_check_nonce(tm):
             "nonce": "0",
             "mock_time": 1330837567,
         },
-        "output": False
+        "output": True
     },
     {
         # seen before, should be in cache.
@@ -216,7 +238,7 @@ def test_check_nonce(tm):
             "nonce": "0",
             "mock_time": 1330837567,
         },
-        "output": True
+        "output": False
     },
     {
         # different value, should not be in cache.
@@ -224,7 +246,7 @@ def test_check_nonce(tm):
             "nonce": "1",
             "mock_time": 1330837567,
         },
-        "output": False
+        "output": True
     },
     {
         # aged off first value, should not be in cache.
@@ -232,7 +254,7 @@ def test_check_nonce(tm):
             "nonce": "0",
             "mock_time": 1330837667,
         },
-        "output": False
+        "output": True
     }]
 
     # check
@@ -240,5 +262,8 @@ def test_check_nonce(tm):
         # mock time
         tm.return_value = test['input']['mock_time']
 
-        testOutput = httpsign._nonce_in_cache(test['input']['nonce'])
-        assert_equal(test['output'], testOutput)
+        # check for exception is we expect the test to fail
+        if test['output'] is False:
+            assert_raises(httpsign.AuthenticationException, httpsign._nonce_in_cache, test['input']['nonce'])
+        else:
+            httpsign._nonce_in_cache(test['input']['nonce'])
