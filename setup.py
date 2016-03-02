@@ -1,11 +1,9 @@
 # coding:utf-8
-
-import sys
 from setuptools import setup, find_packages
 
 
 setup(name='pylemma',
-      version='1.0.6',
+      version='1.0.9',
       description='Mailgun Cryptographic Tools',
       long_description=open('README.rst').read(),
       classifiers=[],

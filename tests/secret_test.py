@@ -1,10 +1,8 @@
-from lemma import secret
-
-from . import *
-
 from mock import patch
-from nose.tools import assert_equal, assert_not_equal, assert_raises
-from nose.tools import nottest
+from nose.tools import assert_equal, assert_raises
+
+from lemma import secret
+from tests import SECRET_KEY
 
 
 def test_initialize():
