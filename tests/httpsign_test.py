@@ -1,13 +1,8 @@
-import time
-
-import expiringdict
-from lemma import httpsign
-
-from . import *
-
 from mock import patch
 from nose.tools import assert_equal, assert_not_equal, assert_raises
-from nose.tools import nottest
+
+from lemma import httpsign
+from tests import HTTPSIGN_KEY
 
 
 def test_initialize():
@@ -15,8 +10,17 @@ def test_initialize():
     httpsign.initialize(HTTPSIGN_KEY)
 
     # check
-    assert_equal(httpsign.SHARED_SECRET, '042DAD12E0BE4625AC0B2C3F7172DBA8')
-    assert_not_equal(httpsign.NONCE_CACHE, None)
+    assert_equal(httpsign._shared_key, '042DAD12E0BE4625AC0B2C3F7172DBA8')
+    assert_not_equal(httpsign._nonce_cache, None)
+
+
+def test_initialize_with_key():
+    # setup
+    httpsign.initialize_with_key('foo')
+
+    # check
+    assert_equal(httpsign._shared_key, 'foo')
+    assert_not_equal(httpsign._nonce_cache, None)
 
 
 @patch('lemma.httpsign._get_timestamp')
