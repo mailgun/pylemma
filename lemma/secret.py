@@ -73,7 +73,7 @@ def initialize_with_key(keybytes=None):
     try:
         SECRET_KEY = keybytes
         BOX = nacl.secret.SecretBox(SECRET_KEY)
-    except:
+    except Exception as e:
         raise SecretException('Unable to initialize SecretBox with given '
             'key: {}: {}'.format(keybytes, e))
 
