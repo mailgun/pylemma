@@ -154,7 +154,7 @@ def test_authenticate_request(gn, gt, tm):
 
     # check
     for i, test in enumerate(auth_tests):
-        print 'Testing Input {}: {}'.format(i, test['input'])
+        print('Testing Input {}: {}'.format(i, test['input']))
 
         # if the request was invalid, expect an AuthenticationException, otherwise
         # we should have no problems.

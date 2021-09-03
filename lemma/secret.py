@@ -4,7 +4,10 @@ See docs/secret.rst for more details.
 """
 import base64
 import os
-import __builtin__
+try:
+    import builtins
+except ImportError:
+    import __builtin__
 
 import nacl.exceptions
 import nacl.secret
