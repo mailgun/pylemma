@@ -33,22 +33,16 @@ def test_sign_request(gn, gt):
     gn.return_value = '000102030405060708090a0b0c0d0e0f'
     gt.return_value = '1330837567'
 
-    # setup values we expect
-    expected_timestamp = '1330837567'
-    expected_nonce = '000102030405060708090a0b0c0d0e0f'
-    expected_signature = \
-        '5a42c21371e8b3a2b50ca1ad72869dc7882aa83a6a2fb13db1bf108d92c6f05f'
-    expected_signature_version = "2"
-
     # test
     got_timestamp, got_nonce, got_signature, got_signature_version = \
         httpsign.sign_request('{"hello": "world"}')
 
     # check
-    assert_equal(expected_timestamp, got_timestamp)
-    assert_equal(expected_nonce, got_nonce)
-    assert_equal(expected_signature, got_signature)
-    assert_equal(expected_signature_version, got_signature_version)
+    assert_equal('1330837567', got_timestamp)
+    assert_equal('000102030405060708090a0b0c0d0e0f', got_nonce)
+    assert_equal('5a42c21371e8b3a2b50ca1ad72869dc7882aa83a6a2fb13db1bf108d92c6f05f',
+                 got_signature)
+    assert_equal("2", got_signature_version)
 
 
 @patch('time.time')
@@ -154,7 +148,7 @@ def test_authenticate_request(gn, gt, tm):
 
     # check
     for i, test in enumerate(auth_tests):
-        print 'Testing Input {}: {}'.format(i, test['input'])
+        print('Testing Input {}: {}'.format(i, test['input']))
 
         # if the request was invalid, expect an AuthenticationException, otherwise
         # we should have no problems.

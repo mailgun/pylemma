@@ -4,13 +4,11 @@ See docs/secret.rst for more details.
 """
 import base64
 import os
-import __builtin__
+from six.moves import builtins
 
 import nacl.exceptions
 import nacl.secret
 import nacl.utils
-
-import lemma.metrics
 
 # constants
 NONCE_LEN = 24 # length of nonce
@@ -109,7 +107,6 @@ def seal(plaintext, key=None):
     return encrypted_message.ciphertext, encrypted_message.nonce
 
 
-@lemma.metrics._metrics
 def open(ciphertext, nonce, key=None, metrics_prefix=None):
     """
     Given ciphertext and a nonce, open will authenticate that the ciphertext
@@ -201,7 +198,7 @@ def _read_key_from_disk(keypath):
     """
 
     # read key from disk
-    encoded_secret_key = __builtin__.open(keypath).read()
+    encoded_secret_key = builtins.open(keypath).read()
 
     # strip newlines if they exist
     encoded_key = encoded_secret_key.strip('\n')

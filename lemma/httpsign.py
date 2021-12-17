@@ -9,8 +9,7 @@ import os
 import threading
 import time
 
-import lemma.metrics
-
+import six
 from cryptography.hazmat.primitives import constant_time
 from expiringdict import ExpiringDict
 
@@ -114,10 +113,9 @@ def sign_request(request_body,
     signature = _compute_mac(shared_secret, timestamp, nonce, request_body,
         http_verb=http_verb, http_resource_uri=http_resource_uri, headers=headers)
 
-    return timestamp, nonce, signature, _SIGNATURE_VERSION
+    return timestamp, nonce, signature.decode("utf-8"), _SIGNATURE_VERSION
 
 
-@lemma.metrics._metrics
 def authenticate_request(timestamp, nonce, request_body, signature, signature_version="2",
     http_verb=None, http_resource_uri=None, headers=None, key=None, metrics_prefix=None):
     """
@@ -241,39 +239,42 @@ def _compute_mac(shared_secret, timestamp, nonce, body,
     50b828e3c9fdf849c5e6ee572604b00bc32663dce0c74fdf0f5b5d3261680efa
     """
 
-    # convert all to utf-8
-    t = to_utf8(timestamp)
-    n = to_utf8(nonce)
-    b = to_utf8(body)
-    h = to_utf8(http_verb)
-    r = to_utf8(http_resource_uri)
-
-    # requred parameters (timestamp, nonce, and body)
-    message = '{0}|{1}|{2}|{3}|{4}|{5}'.format(len(t), t, len(n), n, len(b), b)
+    # required parameters (timestamp, nonce, and body)
+    t = to_binary(timestamp)
+    n = to_binary(nonce)
+    b = to_binary(body)
+    parts = [to_binary(len(t)), t,
+             to_binary(len(n)), n,
+             to_binary(len(b)), b]
 
     # optional parameters (http_verb, http_resource_uri)
     if http_verb and http_resource_uri:
-        part = '|{0}|{1}|{2}|{3}'.format(len(h), h, len(r), r)
-        message = ''.join([message, part])
+        h = to_binary(http_verb)
+        parts.append(to_binary(len(h)))
+        parts.append(h)
+        r = to_binary(http_resource_uri)
+        parts.append(to_binary(len(r)))
+        parts.append(r)
 
     # optional parameters (headers)
     if headers:
-        parts = []
-        for k, v in headers.iteritems():
-            # convert to utf-8, then build string
-            hv = to_utf8(v)
-            parts.append('|{0}|{1}'.format(len(hv), hv))
-        message = ''.join([message] + parts)
+        for k, v in six.iteritems(headers):
+            hv = to_binary(v)
+            parts.append(to_binary(len(hv)))
+            parts.append(hv)
+
+    message = b'|'.join(parts)
 
     # return hmac-sha256 hex digest of the hmac
-    return hmac.new(
-        key=shared_secret,
+    hasher = hmac.new(
+        key=to_binary(shared_secret),
         msg=message,
-        digestmod=hashlib.sha256).hexdigest()
+        digestmod=hashlib.sha256)
+    return to_binary(hasher.hexdigest())
 
 
 def _check_mac(shared_secret, timestamp, nonce, body, message_hmac,
-    http_verb=None, http_resource_uri=None, headers=None):
+               http_verb=None, http_resource_uri=None, headers=None):
     """
     Computes HMAC and compares expected and obtained values. Performs constant
     time comparison. Raises AuthenticationException.
@@ -281,24 +282,27 @@ def _check_mac(shared_secret, timestamp, nonce, body, message_hmac,
 
     # compute the expected hmac
     expected_hmac = _compute_mac(shared_secret, timestamp, nonce, body,
-        http_verb=http_verb, http_resource_uri=http_resource_uri, headers=headers)
+                                 http_verb=http_verb,
+                                 http_resource_uri=http_resource_uri,
+                                 headers=headers)
 
     # constant time check of expected againstreceived hmac
-    if not constant_time.bytes_eq(to_utf8(message_hmac), expected_hmac):
+    if not constant_time.bytes_eq(to_binary(message_hmac), expected_hmac):
         raise AuthenticationException('signature header value does not match computed value')
 
 
-def to_utf8(str_or_unicode):
+def to_binary(o):
     """
-    Safely returns a UTF-8 version of a given string
+    Safely returns a UTF-8 encoded bytes of a given object
 
-    >>> utils.to_utf8(u'hi')
-    'hi'
+    >>> utils.to_binary('hi')
+    b'hi'
     """
-
-    if isinstance(str_or_unicode, unicode):
-        return str_or_unicode.encode("utf-8", "ignore")
-    return str(str_or_unicode)
+    if isinstance(o, six.binary_type):
+        return o
+    if isinstance(o, six.text_type):
+        return o.encode("utf-8", "ignore")
+    return to_binary(str(o))
 
 
 class AuthenticationException(Exception):
