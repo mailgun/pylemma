@@ -1,4 +1,4 @@
-from os.path import join, abspath, dirname, exists
+from os.path import join, abspath, dirname
 
 
 def fixtures_path():
